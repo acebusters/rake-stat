@@ -2,7 +2,7 @@ const indecies = arr => arr.map((_, i) => i);
 
 export const EMPTY_ADDR = '0x0000000000000000000000000000000000000000';
 
-const isEmpty = seat => seat.address === EMPTY_ADDR;
+export const isEmpty = seat => seat.address === EMPTY_ADDR;
 
 export const leavePositions = (oldHand, newHand) => (
   indecies(newHand.lineup)

@@ -1,5 +1,7 @@
 // import _ from 'lodash';
-import { leavePositions, joinPositions, betUpdatePositions } from './utils';
+import { Receipt, PokerHelper } from 'poker-helper';
+import BigNumber from 'bignumber.js';
+import { leavePositions, joinPositions, betUpdatePositions, isEmpty } from './utils';
 
 let events = [];
 const accounts = {};
@@ -8,6 +10,7 @@ export const EventTypes = {
   JOIN: 1,
   LEAVE: 2,
   BET: 3,
+  DIST: 4,
 };
 
 export default class RakeStat {
@@ -63,7 +66,6 @@ export default class RakeStat {
       signerAddr: oldHand.lineup[pos].address,
       type: EventTypes.LEAVE,
       date: Date.now(),
-      meta: '',
     })));
 
     const joins = joinPositions(oldHand, newHand);
@@ -73,7 +75,6 @@ export default class RakeStat {
       signerAddr: newHand.lineup[pos].address,
       type: EventTypes.JOIN,
       date: Date.now(),
-      meta: '',
     })));
 
     const betUpdates = betUpdatePositions(oldHand, newHand);
@@ -83,15 +84,37 @@ export default class RakeStat {
       signerAddr: newHand.lineup[pos].address,
       type: EventTypes.BET,
       date: Date.now(),
-      meta: newHand.lineup[pos].last,
+      receipt: newHand.lineup[pos].last,
     })));
 
-    // this.logger.log('DBUpd', {
-    //   extra: { leaves, joins, newHand, oldHand },
-    // });
+    if (oldHand.distribution !== newHand.distribution) {
+      const { outs } = Receipt.parse(newHand.distribution);
+      const ph = new PokerHelper();
+      const zeroRakeDist = ph.calcDistribution(
+        newHand.lineup,
+        newHand.state,
+        newHand.cards,
+        0,
+        '0x00',
+      );
+      events = newHand.lineup.reduce((memo, seat, i) => {
+        if (outs[i].gt(0)) {
+          return [
+            ...memo,
+            {
+              tableAddr,
+              handId: newHand.handId,
+              signerAddr: seat.address,
+              type: EventTypes.DIST,
+              value: outs[i].toString(),
+              rake: new BigNumber(zeroRakeDist[seat.address]).sub(outs[0]).toString(),
+            },
+          ];
+        }
 
-    // detect distributions, bets, joins and leaves
-    // how to store distributions? Maybe store the whole lineup in
+        return memo;
+      }, events);
+    }
 
     return [];
   }
