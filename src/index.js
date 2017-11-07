@@ -1,18 +1,21 @@
-import _ from 'lodash';
-import BigNumber from 'bignumber.js';
+// import _ from 'lodash';
+import { leavePositions, joinPositions } from './utils';
 
-const EMPTY_ADDR = '0x0000000000000000000000000000000000000000';
-const ETH_DECIMALS = new BigNumber(10).pow(18);
-
-const events = [];
+let events = [];
 const accounts = {};
+
+export const EventTypes = {
+  JOIN: 1,
+  LEAVE: 2,
+};
 
 export default class RakeStat {
 
-  constructor(sentry, db, web3) {
+  constructor(sentry, db, web3, logger) {
     this.sentry = sentry;
     this.db = db;
     this.web3 = web3;
+    this.logger = logger;
   }
 
   processMessage(message) {
@@ -37,6 +40,10 @@ export default class RakeStat {
       if (msgType === 'AccountUpdated') {
         tasks.push(this.handleAccountUpdate(msgBody));
       }
+
+      if (msgType === 'ContractEvent' && msgBody.event === 'Join') {
+        tasks.push(this.handleJoin(msgBody));
+      }
     } catch (e) {
       return [Promise.resolve(`json parse error: ${JSON.stringify(e)}`)];
     }
@@ -45,12 +52,37 @@ export default class RakeStat {
     return tasks;
   }
 
-  proccessDbChange(record) {
-    const newHand = AttributeValue.unwrap(record.NewImage);
-    const keys = AttributeValue.unwrap(record.Keys);
+  async proccessDbChange(oldHand, newHand) {
+    const { tableAddr } = oldHand;
+
+    const leaves = leavePositions(oldHand, newHand);
+    events = events.concat(leaves.map(pos => ({
+      tableAddr,
+      handId: newHand.handId,
+      signerAddr: oldHand.lineup[pos].address,
+      type: EventTypes.LEAVE,
+      date: Date.now(),
+      meta: '',
+    })));
+
+    const joins = joinPositions(oldHand, newHand);
+    events = events.concat(joins.map(pos => ({
+      tableAddr,
+      handId: newHand.handId,
+      signerAddr: newHand.lineup[pos].address,
+      type: EventTypes.JOIN,
+      date: Date.now(),
+      meta: '',
+    })));
+
+    // this.logger.log('DBUpd', {
+    //   extra: { leaves, joins, newHand, oldHand },
+    // });
 
     // detect distributions, bets, joins and leaves
     // how to store distributions? Maybe store the whole lineup in
+
+    return [];
   }
 
   async handleNewAccount({ accountId, signerAddr, proxyAddr, referral }) {
