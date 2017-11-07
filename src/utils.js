@@ -13,3 +13,8 @@ export const joinPositions = (oldHand, newHand) => (
   indecies(newHand.lineup)
     .filter(i => !isEmpty(newHand.lineup[i]) && isEmpty(oldHand.lineup[i]))
 );
+
+export const betUpdatePositions = (oldHand, newHand) => (
+  indecies(newHand.lineup)
+    .filter(i => oldHand.lineup[i].last !== newHand.lineup[i].last)
+);

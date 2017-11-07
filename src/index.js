@@ -1,5 +1,5 @@
 // import _ from 'lodash';
-import { leavePositions, joinPositions } from './utils';
+import { leavePositions, joinPositions, betUpdatePositions } from './utils';
 
 let events = [];
 const accounts = {};
@@ -7,6 +7,7 @@ const accounts = {};
 export const EventTypes = {
   JOIN: 1,
   LEAVE: 2,
+  BET: 3,
 };
 
 export default class RakeStat {
@@ -73,6 +74,16 @@ export default class RakeStat {
       type: EventTypes.JOIN,
       date: Date.now(),
       meta: '',
+    })));
+
+    const betUpdates = betUpdatePositions(oldHand, newHand);
+    events = events.concat(betUpdates.map(pos => ({
+      tableAddr,
+      handId: newHand.handId,
+      signerAddr: newHand.lineup[pos].address,
+      type: EventTypes.BET,
+      date: Date.now(),
+      meta: newHand.lineup[pos].last,
     })));
 
     // this.logger.log('DBUpd', {
