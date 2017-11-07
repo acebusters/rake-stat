@@ -35,7 +35,7 @@ export default class RakeStat {
       }
 
       if (msgType === 'AccountUpdated') {
-        tasks.push(this.handleNewAccount(msgBody));
+        tasks.push(this.handleAccountUpdate(msgBody));
       }
     } catch (e) {
       return [Promise.resolve(`json parse error: ${JSON.stringify(e)}`)];
@@ -61,6 +61,14 @@ export default class RakeStat {
   async handleAccountUpdate({ accountId, signerAddr }) {
     // Need to get referral
     accounts[accountId].signerAddr = signerAddr;
+  }
+
+  getAccounts() {
+    return accounts;
+  }
+
+  getEvents() {
+    return events;
   }
 
 }

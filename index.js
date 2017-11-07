@@ -31,6 +31,15 @@ exports.handler = async function handler(event, context, callback) {
         }, []),
       );
       return callback(null, data);
+    } else if (event.context && event.context['resource-path']) {
+      const path = event.context['resource-path'];
+
+      if (path.indexOf('test') > -1) {
+        const accounts = await stat.getAccounts();
+        const events = await stat.getEvents();
+
+        return callback(null, { accounts, events });
+      }
     }
   } catch (err) {
     Raven.captureException(err, { server_name: 'gas-stat' }, (sendErr) => {
