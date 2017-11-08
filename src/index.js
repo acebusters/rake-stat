@@ -51,8 +51,8 @@ export default class RakeStat {
 
     return Promise.all([
       ...leaves.map(pos => this.db.addLeave(tableAddr, handId, oldHand.lineup[pos].address)),
-      ...joins.map(pos => this.addJoin(tableAddr, handId, newHand.lineup[pos].address)),
-      ...betUpdates.map(pos => this.addBet(
+      ...joins.map(pos => this.db.addJoin(tableAddr, handId, newHand.lineup[pos].address)),
+      ...betUpdates.map(pos => this.db.addBet(
         tableAddr, handId,
         newHand.lineup[pos].address, newHand.lineup[pos].last,
       )),

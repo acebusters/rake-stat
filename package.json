@@ -45,6 +45,7 @@
     "bignumber.js": "^4.0.0",
     "dynamodb-data-types": "^3.0.0",
     "lodash": "^4.17.4",
+    "mysql": "^2.15.0",
     "poker-helper": "^0.6.10",
     "qs": "^6.5.0",
     "raven": "^1.2.0",

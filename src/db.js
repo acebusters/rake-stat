@@ -5,66 +5,95 @@ export const EventTypes = {
   DIST: 4,
 };
 
-const events = [];
-const accounts = {};
-
 export default class Db {
-  get accounts() {
-    return accounts;
-  }
-
-  get events() {
-    return events;
+  constructor(connection, eventsTable, accountsTable) {
+    this.connection = connection;
+    this.eventsTable = eventsTable;
+    this.accountsTable = accountsTable;
   }
 
   async addAccount({ accountId, signerAddr, proxyAddr, referral }) {
-    accounts[accountId] = { referral, signerAddr, proxyAddr };
+    return new Promise((resolve, reject) => {
+      this.connection.query(
+        `INSERT INTO \`${this.accountsTable}\` VALUES('${accountId}', '${signerAddr}', '${proxyAddr}', '${referral}')`,
+        (err, result) => {
+          if (err) {
+            reject(err);
+          } else {
+            resolve(result);
+          }
+        },
+      );
+    });
   }
 
   async updateAccount({ accountId, signerAddr }) {
-    accounts[accountId].signerAddr = signerAddr;
+    return new Promise((resolve, reject) => {
+      this.connection.query(
+        `UPDATE \`${this.accountsTable}\` SET signerAddr='${signerAddr}' WHERE id='${accountId}'`,
+        (err, result) => {
+          if (err) {
+            reject(err);
+          } else {
+            resolve(result);
+          }
+        },
+      );
+    });
   }
 
   async addBet(tableAddr, handId, signerAddr, receipt) {
-    events.push({
-      tableAddr,
-      handId,
-      signerAddr,
-      receipt,
-      type: EventTypes.BET,
-      date: Date.now(),
-    });
+    return this.addEvent(
+      EventTypes.BET,
+      tableAddr, handId, signerAddr, null, receipt,
+    );
   }
 
-  async addDist(tableAddr, handId, signerAddr, value, rake) {
-    events.push({
-      tableAddr,
-      handId,
-      signerAddr,
-      value,
-      rake,
-      date: Date.now(),
-      type: EventTypes.DIST,
-    });
+  async addDist(...args) { // tableAddr, handId, signerAddr, value, rake
+    return this.addEvent(
+      EventTypes.DIST,
+      ...args,
+    );
   }
 
-  async addJoin(tableAddr, handId, signerAddr) {
-    events.push({
-      tableAddr,
-      handId,
-      signerAddr,
-      type: EventTypes.JOIN,
-      date: Date.now(),
-    });
+  async addJoin(...args) { // tableAddr, handId, signerAddr
+    return this.addEvent(
+      EventTypes.JOIN,
+      ...args,
+    );
   }
 
-  async addLeave(tableAddr, handId, signerAddr) {
-    events.push({
-      tableAddr,
-      handId,
-      signerAddr,
-      type: EventTypes.LEAVE,
-      date: Date.now(),
+  async addLeave(...args) { // tableAddr, handId, signerAddr
+    return this.addEvent(
+      EventTypes.LEAVE,
+      ...args,
+    );
+  }
+
+  addEvent(type, tableAddr, handId, signerAddr, amount = 0, meta = '') {
+    const now = Math.round(Date.now() / 1000);
+    return new Promise((resolve, reject) => {
+      this.connection.query(
+        `INSERT INTO
+          \`${this.eventsTable}\`
+        VALUES(
+          '${tableAddr}',
+          ${handId},
+          '${signerAddr}',
+          ${type},
+          ${now},
+          ${amount},
+          '${meta}'
+        ) ON DUPLICATE KEY UPDATE date=${now}, amount=${amount}, meta='${meta}'
+        `,
+        (err, result) => {
+          if (err) {
+            reject(err);
+          } else {
+            resolve(result);
+          }
+        },
+      );
     });
   }
 }
